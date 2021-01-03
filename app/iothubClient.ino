@@ -42,7 +42,7 @@ static void sendCallback(IOTHUB_CLIENT_CONFIRMATION_RESULT result, void *userCon
     messagePending = false;
 }
 
-static void sendMessage(IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle, char *buffer, bool temperatureAlert)
+static void sendMessage(IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle, char *buffer, bool weightAlert)
 {
     IOTHUB_MESSAGE_HANDLE messageHandle = IoTHubMessage_CreateFromByteArray((const unsigned char *)buffer, strlen(buffer));
     if (messageHandle == NULL)
@@ -51,8 +51,9 @@ static void sendMessage(IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle, char *buffer
     }
     else
     {
-        MAP_HANDLE properties = IoTHubMessage_Properties(messageHandle);
-        Map_Add(properties, "temperatureAlert", temperatureAlert ? "true" : "false");
+        // Weight alert should be handled at cloud side based on data
+        // MAP_HANDLE properties = IoTHubMessage_Properties(messageHandle);
+        // Map_Add(properties, "weightAlert", weightAlert ? "true" : "false");
         Serial.printf("Sending message: %s.\r\n", buffer);
         if (IoTHubClient_LL_SendEventAsync(iotHubClientHandle, messageHandle, sendCallback, NULL) != IOTHUB_CLIENT_OK)
         {
@@ -140,20 +141,4 @@ int deviceMethodCallback(
     strncpy((char *)(*response), responseMessage, *response_size);
 
     return result;
-}
-
-void twinCallback(
-    DEVICE_TWIN_UPDATE_STATE updateState,
-    const unsigned char *payLoad,
-    size_t size,
-    void *userContextCallback)
-{
-    char *temp = (char *)malloc(size + 1);
-    for (int i = 0; i < size; i++)
-    {
-        temp[i] = (char)(payLoad[i]);
-    }
-    temp[size] = '\0';
-    parseTwinMessage(temp);
-    free(temp);
 }

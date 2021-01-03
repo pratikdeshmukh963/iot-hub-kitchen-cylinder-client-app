@@ -1,6 +1,5 @@
-#include <Adafruit_Sensor.h>
 #include <ArduinoJson.h>
-#include <DHT.h>
+#include "HX711.h"
 
 #if SIMULATED_DATA
 
@@ -9,88 +8,71 @@ void initSensor()
     // use SIMULATED_DATA, no sensor need to be inited
 }
 
-float readTemperature()
+float readWeight()
 {
-    return random(20, 30);
-}
-
-float readHumidity()
-{
-    return random(30, 40);
+    return random(15999, 30000);
 }
 
 #else
 
-static DHT dht(DHT_PIN, DHT_TYPE);
+HX711 scale;
 void initSensor()
 {
-    dht.begin();
+    scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+    scale.set_scale();
+    scale.tare();
+    /*
+     * Currently this value is coded into the device but we can also configure 
+     * it using any home assistant if required.
+     * TODO: One easy way would be using devices' own weight
+     *  - A certain amount of delay after tare lets say 20sec.
+     *  - Put the machine upside down so that it's own weight can be used to 
+     *    find scale value.
+     *  - We can use device own reading and get away without any delays.
+     */
+    scale.set_scale(-24.6);
 }
 
-float readTemperature()
+int readWeight()
 {
-    return dht.readTemperature();
-}
-
-float readHumidity()
-{
-    return dht.readHumidity();
+    float reading = 0;
+    if (scale.is_ready()) {
+        reading = scale.get_units(5);
+        Serial.print("Weight: ");
+        Serial.println(reading);
+    }
+    else
+    {
+        Serial.println("HX711 not found.");
+    }
+    return round(reading);
 }
 
 #endif
 
-bool readMessage(int messageId, char *payload)
+bool readMessage(char *payload)
 {
-    float temperature = readTemperature();
-    float humidity = readHumidity();
+    int weight = readWeight();
     StaticJsonBuffer<MESSAGE_MAX_LEN> jsonBuffer;
     JsonObject &root = jsonBuffer.createObject();
     root["deviceId"] = DEVICE_ID;
-    root["messageId"] = messageId;
-    bool temperatureAlert = false;
+    bool weightAlert = false;
 
     // NAN is not the valid json, change it to NULL
-    if (std::isnan(temperature))
+    if (std::isnan(weight) || weight == 0)
     {
-        root["temperature"] = NULL;
+        root["weight"] = NULL;
     }
     else
     {
-        root["temperature"] = temperature;
-        if (temperature > TEMPERATURE_ALERT)
+        root["weight"] = weight;
+        // FIXME: Currently not used. Analytics done at cloud side
+        if (weight < WEIGHT_ALERT)
         {
-            temperatureAlert = true;
+            weightAlert = true;
         }
     }
 
-    if (std::isnan(humidity))
-    {
-        root["humidity"] = NULL;
-    }
-    else
-    {
-        root["humidity"] = humidity;
-    }
     root.printTo(payload, MESSAGE_MAX_LEN);
-    return temperatureAlert;
-}
-
-void parseTwinMessage(char *message)
-{
-    StaticJsonBuffer<MESSAGE_MAX_LEN> jsonBuffer;
-    JsonObject &root = jsonBuffer.parseObject(message);
-    if (!root.success())
-    {
-        Serial.printf("Parse %s failed.\r\n", message);
-        return;
-    }
-
-    if (root["desired"]["interval"].success())
-    {
-        interval = root["desired"]["interval"];
-    }
-    else if (root.containsKey("interval"))
-    {
-        interval = root["interval"];
-    }
+    return weightAlert;
 }

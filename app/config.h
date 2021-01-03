@@ -1,12 +1,13 @@
 // Physical device information for board and sensor
-#define DEVICE_ID "Feather HUZZAH ESP8266 WiFi"
+#define DEVICE_ID "ESP8266 kitchen cylinder weighing scale"
 #define DHT_TYPE DHT22
 
 // Pin layout configuration
-#define LED_PIN 0
-#define DHT_PIN 2
+#define LOADCELL_DOUT_PIN 0
+#define LOADCELL_SCK_PIN 2
 
-#define TEMPERATURE_ALERT 30
+// This is actually 15.9Kg when empty for HP gas but we have other weights as gas knob and pipe
+#define WEIGHT_ALERT 16500
 
 // Interval time(ms) for sending message to IoT Hub
 #define INTERVAL 2000

@@ -24,6 +24,44 @@ static char *pass;
 
 static int interval = INTERVAL;
 
+static IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle;
+void setup()
+{
+    initSerial();
+    delay(5000);
+    readCredentials();
+
+    initWifi();
+    initTime();
+    initSensor();
+
+    /*
+     * AzureIotHub library remove AzureIoTHubClient class in 1.0.34, so we remove the code below to avoid
+     *    compile error
+    */
+    // initIoThubClient();
+    iotHubClientHandle = IoTHubClient_LL_CreateFromConnectionString(connectionString, MQTT_Protocol);
+    if (iotHubClientHandle == NULL)
+    {
+        Serial.println("Failed on IoTHubClient_CreateFromConnectionString.");
+        while (1);
+    }
+
+}
+
+void loop()
+{
+    if (!messagePending && messageSending)
+    {
+        char messagePayload[MESSAGE_MAX_LEN];
+        bool weightAlert = readMessage(messagePayload);
+        sendMessage(iotHubClientHandle, messagePayload, weightAlert);
+        delay(interval);
+    }
+    IoTHubClient_LL_DoWork(iotHubClientHandle);
+    delay(10);
+}
+
 
 void initWifi()
 {
@@ -67,50 +105,4 @@ void initTime()
             break;
         }
     }
-}
-
-static IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle;
-void setup()
-{
-
-    initSerial();
-    delay(5000);
-    readCredentials();
-
-    initWifi();
-    initTime();
-    initSensor();
-
-    /*
-     * AzureIotHub library remove AzureIoTHubClient class in 1.0.34, so we remove the code below to avoid
-     *    compile error
-    */
-
-    // initIoThubClient();
-    iotHubClientHandle = IoTHubClient_LL_CreateFromConnectionString(connectionString, MQTT_Protocol);
-    if (iotHubClientHandle == NULL)
-    {
-        Serial.println("Failed on IoTHubClient_CreateFromConnectionString.");
-        while (1);
-    }
-
-    IoTHubClient_LL_SetOption(iotHubClientHandle, "product_info", "HappyPath_AdafruitFeatherHuzzah-C");
-    IoTHubClient_LL_SetMessageCallback(iotHubClientHandle, receiveMessageCallback, NULL);
-    IoTHubClient_LL_SetDeviceMethodCallback(iotHubClientHandle, deviceMethodCallback, NULL);
-    IoTHubClient_LL_SetDeviceTwinCallback(iotHubClientHandle, twinCallback, NULL);
-}
-
-static int messageCount = 1;
-void loop()
-{
-    if (!messagePending && messageSending)
-    {
-        char messagePayload[MESSAGE_MAX_LEN];
-        bool temperatureAlert = readMessage(messageCount, messagePayload);
-        sendMessage(iotHubClientHandle, messagePayload, temperatureAlert);
-        messageCount++;
-        delay(interval);
-    }
-    IoTHubClient_LL_DoWork(iotHubClientHandle);
-    delay(10);
 }
