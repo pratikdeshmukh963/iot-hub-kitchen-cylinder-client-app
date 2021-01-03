@@ -7,4 +7,5 @@
 - In platform.txt file (or if you are using platform.local.txt use that) replace {runtime.tools.python.path}/python with {runtime.tools.python3.path}/python3. At the time of installation python3 was present it might change for other version of python.
 
 ***Code Referene***: https://github.com/Azure/azure-iot-device-ecosystem/blob/master/get_started/iot-hub-arduino-huzzah-esp8266-get-started.md  
+***Setup Arduino in VS code***: https://cuneyt.aliustaoglu.biz/en/enabling-arduino-intellisense-with-visual-studio-code/  
 ***Weight sensor device hookup diagram***: https://circuitjournal.com/50kg-load-cells-with-HX711
